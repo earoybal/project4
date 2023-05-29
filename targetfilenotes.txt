@@ -1,0 +1,5 @@
+5 loci in the frogs.txt
+to get # loci: grep -E '[[:digit:]]+[[:space:]]{1}[[:digit:]]+' | wc -l
+idea:
+use grep -Vc to get # of loci and use that as # for for loop. Use for loop to separate each loci into separate variable or files depending on which works better once I get it done. Use another for loop to loop through each loci, printing output.
+Can use grep -n to get line # for the start of each loci and then use seq # to determine how much to scan.

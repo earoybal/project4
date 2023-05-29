@@ -1,0 +1,2 @@
+5 loci in the frogs.txt
+to get # loci: grep -E '[[:digit:]]+[[:space:]]{1}[[:digit:]]+' | wc -l

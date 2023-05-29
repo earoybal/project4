@@ -1,0 +1,38 @@
+Practical Project 4.
+
+Purpose:
+
+The script seqcheck.sh will check that DNA sequence data in a text file in bpp/phylip format is correctly specified. The format is made up of multiple gene/locus entries, each with the following format:
+
+no_sequences no_sites
+
+sequence_1_name   DNA bases...
+sequence_2_name   DNA bases...
+.
+.
+sequence_n_name   DNA bases...
+
+where n=no_sequences
+
+Specifically, the script should check that the number of sequences at each locus matches the header no_sequences and that the number of sites in each sequence matches the header no_sites at each locus. The script should print a summary to stdout of the results, for example:
+
+Locus 1: no_seqs 24 matched observed. no_sites: 453 matched observed.
+Locus 2: no_seqs 14 matched observed. no_sites: 536 matched observed.
+etc.
+
+If errors are observed in a file print informative messages, for example:
+Locus 16: no_seqs 16 did not match observed 17
+
+Use the file bpp-4.6.2/examples/frogs/frogs.txt from the bpp software installed in tutorial 13 to test your script.
+
+Syntax:
+
+The seqcheck.sh script should run with the following command:
+
+./seqcheck.sh seq_data
+
+where seq_data is a sequence data file in bpp/phylip format.
+
+General Features:
+
+Add appropriate error checking to your code (e.g., does the file seq_data exist?, etc) and include informative comments that explain what your code is doing. Create and maintain your code in a public github repository under your account named project4.
