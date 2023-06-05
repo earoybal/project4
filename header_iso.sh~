@@ -1,0 +1,74 @@
+#!/bin/bash
+#pattern to use to search for header
+head_pattern='[[:digit:]]+[[:space:]]{1}[[:digit:]]+[[:space:]]{1}[[:digit:]]+'
+#getting header along with its line number
+header="$(cat -n $1 | grep -E $head_pattern)"
+#adding extra line at end of header because my method later on is gonna be weird
+extraendline=$(($(cat $1 | wc -l)+1)) #good
+
+header+="\n$extraendline 0 0\n" #good
+printf "$header" > header.txt
+cat header.txt
+#awk works on printf "$header"
+
+certainrow="$(cat header.txt | awk -F ' ' 'NR==3 { print $1 }')" #works with both .txt and header
+
+#can get right thing for header just fine and then if number is isolated just behaves like a number, cool, I hate this
+#awk -vline="$certainrow" 'NR>=line && NR <= 60 { print $0 }' $1
+#it can be done. I can get a space separted table of header line number, seq#, and base # for the thing and then use awk to pull out a specific number I want
+
+
+#dunno how to deal with word count issue otherwise so I'm just going to have to create a temp file to store it in then delete it later
+
+#for loop to get each loci
+for ((i=1;i<$(cat header.txt | wc -l);i++)) #i works and only prints out 1-5
+do    
+    awk -vstart="$(($(cat header.txt | awk -vinit="$i" 'NR==init { print $1 }')+2))" -vend="$(($(cat header.txt | awk -ven="$(($i+1))" 'NR==en { print $1 }')-2))" 'NR>=start && NR<=end { print $0 }' $1 > loci$i.txt
+done
+#IT WORKS I'M SO HAPPY NOT TOUCHING IT SO IT DOESN'T BREAK
+#summary of what just went down: got the line# for a header and the header immediately after that then used that to cut out the text in between them. Little different for last loci which is why I modded header
+
+cat loci1.txt | awk -F ' ' '{ print $2 }' | wc -l
+#cat loci2.txt | awk -F ' ' 'NR==6 { print $2 }' | wc -c
+#oh nice, awk works on the sequences just fine, probably can just get the bases that way too
+#for some reason wc returns stuff that is consistently 2 chrs longer than what the header is, line # is fine though
+#only produces one line so something weird is going on
+
+#chunk of code that will do all of the seq and base checking
+for ((i=1;i<$(cat header.txt | wc -l);i++))
+do
+    if [ $(cat loci$i.txt | wc -l) -eq $(awk -vrow=$i 'NR==row { print $2 }') ]
+    then
+	printf "Locus $i: no_seqs $(awk -vrow$i 'NR==row { print $2 }') matched observed. "
+    else
+	printf "Locus $i: no_seqs $(awk -vrow$i 'NR==row { print $2 }') did not match observed $(cat loci$i.txt | wc -l)"
+    fi
+    seq_count=0
+    for ((k=1;k<=$(cat loci$i.txt | wc -l);k++))
+    do
+	seqlinect="$(cat loci$i.txt | awk -vline=$k 'NR==line { print $2 }' | wc -m)"
+	if [ $(($seqlinect-2)) -eq $(cat header.txt | awk -vloci=$i 'NR==loci { print $3 }') ]
+	then
+	    seq_count=$(($seq_count+1))
+	else
+	    printf "Sequence $(cat loci$i.txt | awk -vseqline=$k 'NR==seqline { print $1 }'): no_sites $(cat header.txt | awk -vloci=$i 'NR==loci { print $3 }') did not match observed $(($seqlinect-2)). "
+	fi
+    done
+    if [ $seqlinect -eq $(cat header.txt | awk -vrow=$i 'NR==row { print $3 }') ]
+    then
+	printf "no_sites $(cat header.txt | awk -vrow=$i 'NR==row { print $3 }') matched observed."
+    fi
+    printf "\n"
+done
+
+    
+
+
+
+
+
+
+
+
+rm header.txt
+rm loci*.txt

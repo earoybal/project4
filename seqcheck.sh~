@@ -1,0 +1,72 @@
+#!/bin/bash
+
+#checking to make sure correct # of arguments given
+if [ $# -ne 1 ]
+then
+    printf "Incorrect number of arguments given. Use format ./seqcheck.sh bpp_file . Where bpp_file is in bpp/phylip format.\n"
+    exit
+fi
+
+#checking file location to see if it is PWD
+fileexist="$(find -maxdepth 1 -name $1 -type f | wc -m)"
+if [ $fileexist -ge 1 ]
+then
+
+#pattern that will be used to pull out headers
+head_pattern='[[:digit:]]+[[:space:]]{1}[[:digit:]]+[[:space:]]{1}[[:digit:]]+'
+
+#getting headers along with their line number
+header="$(cat -n $1 | grep -E $head_pattern)"
+
+#adding extra line at end of header so that all loci have a difference of 2 lines between end of sequences and next header lines
+extraendline=$(($(cat $1 | wc -l)+1))
+header+="\n$extraendline 0 0\n"
+printf "$header" > header.txt #assigning it to a file because quotes were getting messy and weird
+
+#for loop to get each loci
+for ((i=1;i<$(cat header.txt | wc -l);i++)) #header contains list of line #, seq count, dsfsdfsdfsda
+do    
+    awk -vstart="$(($(cat header.txt | awk -vinit="$i" 'NR==init { print $1 }')+2))" -vend="$(($(cat header.txt | awk -ven="$(($i+1))" 'NR==en { print $1 }')-2))" 'NR>=start && NR<=end { print $0 }' $1 > loci$i.txt
+done
+#IT WORKS I'M SO HAPPY NOT TOUCHING IT SO IT DOESN'T BREAK
+#summary of what just went down: got the line# for a header and the header immediately after that then used that to cut out the text in between them. Little different for last loci which is why I modded header
+#for some reason wc returns stuff that is consistently 2 chrs longer than what it should be
+#chunk of code that will do all of the seq and base checking
+for ((i=1;i<$(cat header.txt | wc -l);i++))
+do
+    if [ $(cat loci$i.txt | wc -l) -eq $(cat header.txt | awk -vrow=$i 'NR==row { print $2 }') ]
+    then
+	printf "Locus $i: no_seqs $(cat header.txt | awk -vrow=$i 'NR==row { print $2 }') matched observed. "
+    else
+	printf "Locus $i: no_seqs $(cat header.txt | awk -vrow=$i 'NR==row { print $2 }') did not match observed $(cat loci$i.txt | wc -l)"
+    fi
+    
+    seq_count=0
+    for ((k=1;k<=$(cat loci$i.txt | wc -l);k++))
+    do
+	printf "$(($(cat loci$i.txt | awk -vline=$k 'NR==line { print $2 }' | wc -m | grep -Eo '[[:digit:]]+')-2))" > obsloci$i$k.txt
+	printf "$(cat header.txt | awk -vline=$i 'NR==line { print $3 }' | grep -Eo '[[:digit:]]+')" > exploci$i$k.txt
+	if [ $(cat obsloci$i$k.txt) -eq $(cat exploci$i$k.txt) ]
+	then
+	    seq_count=$(($seq_count+1))
+	else
+	    printf "Sequence $(cat loci$i.txt | awk -vseqline=$k 'NR==seqline { print $1 }'): no_sites $(cat exploci$i$k.txt) did not match observed $(cat obsloci$i$k.txt). "
+	fi
+    done
+    
+    if [ $seq_count -eq $(cat header.txt | awk -vrow=$i 'NR==row { print $2 }') ]
+    then
+	printf "no_sites $(cat header.txt | awk -vrow=$i 'NR==row { print $3 }' | grep -Eo '[[:digit:]]+') matched observed."
+    fi
+    printf "\n"
+done
+
+rm header.txt
+rm loci*.txt
+rm exploci*.txt
+rm obsloci*.txt
+
+
+else
+    printf "File not found. Please place in present working directory.\n"
+fi
