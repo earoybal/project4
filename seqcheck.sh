@@ -12,6 +12,12 @@ fileexist="$(find -maxdepth 1 -name $1 -type f | wc -m)"
 if [ $fileexist -ge 1 ]
 then
 
+#checking to see if headers have both sequence number and base number
+#only works if all headers lack both seq number and base number unfortunately
+headerformatcheck="$(cat $1 | grep -Eo '[[:digit:]]+[[:space:]]{1}[[:digit:]]+' | wc -m)"
+if [ $headerformatcheck > 0 ]
+   then
+    
 #pattern that will be used to pull out headers
 head_pattern='[[:digit:]]+[[:space:]]{1}[[:digit:]]+[[:space:]]{1}[[:digit:]]+'
 
@@ -77,8 +83,13 @@ rm loci*.txt
 rm exploci*.txt
 rm obsloci*.txt
 
-
 else
+    #end of header format check
+    printf "Loci headers are not in the correct format. Please include number of sequences for each loci and number of bases in the sequences for each loci in format: num_seq num_base.\n"
+fi
+    
+else
+    #end of file existence check
     #result printed to stdout if file isn't in pwd
     printf "File not found. Please place in present working directory.\n"
 fi
